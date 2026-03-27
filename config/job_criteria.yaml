@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Job Criteria Configuration
+#
+# Edit this file to define the role you are hiring for.
+# The AI evaluator reads this file on every analysis run — no code changes needed.
+#
+# Fields:
+#   job_title              : The name of the role (shown in the UI)
+#   required_skills        : Skills the candidate MUST have (missing = gap)
+#   preferred_skills       : Nice-to-have skills (bonus points if present)
+#   minimum_experience_years: Minimum total years of relevant experience
+#   education_requirement  : Expected educational background
+#   key_responsibilities   : Main duties the candidate should be able to perform
+# ─────────────────────────────────────────────────────────────────────────────
+
+job_title: "Senior Python Developer"
+
+required_skills:
+  - "Python"
+  - "FastAPI"
+  - "PostgreSQL"
+  - "Docker"
+  - "REST API design"
+  - "Git"
+
+preferred_skills:
+  - "Kubernetes"
+  - "Redis"
+  - "AWS or GCP"
+  - "CI/CD pipelines"
+  - "React or any frontend framework"
+
+minimum_experience_years: 3
+
+education_requirement: "Bachelor's degree in Computer Science, Software Engineering, or equivalent practical experience"
+
+key_responsibilities:
+  - "Design, build, and maintain high-performance REST APIs using FastAPI"
+  - "Write clean, testable Python code with unit and integration tests"
+  - "Manage relational databases (PostgreSQL) including schema design and query optimisation"
+  - "Containerise applications using Docker and deploy them reliably"
+  - "Collaborate with cross-functional teams using Git and code review practices"
+  - "Participate in architecture discussions and technical decision-making"
