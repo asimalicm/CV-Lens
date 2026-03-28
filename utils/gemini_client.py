@@ -38,11 +38,15 @@ JSON OUTPUT SCHEMA (what Gemini is asked to return):
 
 import json
 import re
+import io
 
-import google.generativeai as genai
+# google-genai is the new official Python SDK (replaces google-generativeai).
+# The key difference: instead of global genai.configure() + genai.GenerativeModel(),
+# you create a Client instance per call and use client.models.generate_content().
+from google import genai
+from google.genai import types
 import yaml
 from PIL import Image
-import io
 
 
 # ─── The JSON schema we tell Gemini to follow ────────────────────────────────
@@ -89,9 +93,29 @@ def _build_text_prompt(cv_text: str, criteria_yaml: str) -> str:
     HOW:
         We use clear section headers (--- JOB CRITERIA ---, --- CV TEXT ---)
         as "anchors" so Gemini can easily find each part of the input.
+
+        If the CV text starts with our [NOTE: raw LaTeX] prefix (written by
+        latex_parser.py's Layer 3 fallback), we add an extra reminder that
+        Gemini should parse through the LaTeX markup to find the candidate's
+        actual content. This prevents Gemini from treating the markup itself
+        as the candidate's experience.
     """
     instructions = EVALUATION_INSTRUCTIONS.format(schema=JSON_SCHEMA)
-    return f"""{instructions}
+
+    # Detect when latex_parser.py fell back to raw LaTeX source.
+    # In that case, add an extra explicit instruction so Gemini doesn't
+    # mistake LaTeX command names for the candidate's skills/experience.
+    latex_note = ""
+    if cv_text.startswith("[NOTE: The following CV is provided as raw LaTeX"):
+        latex_note = (
+            "\nIMPORTANT: The CV below is raw LaTeX source code. "
+            "Read through the LaTeX markup (\\section, \\textbf, \\item, etc.) "
+            "and evaluate the candidate's actual experience and skills as they "
+            "would appear in a rendered CV. Do not treat LaTeX command names as "
+            "the candidate's content.\n"
+        )
+
+    return f"""{instructions}{latex_note}
 
 --- JOB CRITERIA ---
 {criteria_yaml}
@@ -210,21 +234,18 @@ def analyze_cv(routed_data: tuple, job_criteria: dict, api_key: str) -> dict:
             "Set GEMINI_API_KEY in your .env file (local) or Streamlit secrets (cloud)."
         )
 
-    # Step 1 — Configure the SDK with our API key.
-    # This is a global configuration call; it applies to all subsequent
-    # Gemini API calls in this Python process.
-    genai.configure(api_key=api_key)
+    # Step 1 — Create a Client instance with our API key.
+    # In the new google-genai SDK there is no global configure() call.
+    # Instead you create a Client object and every call flows through it.
+    # This is safer (no hidden global state) and makes testing easier.
+    client = genai.Client(api_key=api_key)
 
-    # Step 2 — Create the model.
-    # response_mime_type="application/json" tells Gemini to return pure JSON,
-    # which makes parsing far more reliable than trying to extract JSON from
-    # a conversational text response.
-    model = genai.GenerativeModel(
-        model_name="gemini-3-flash-preview",
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.2,  # Low temperature = more consistent, factual output
-        ),
+    # Step 2 — Define the generation config using types.GenerateContentConfig.
+    # response_mime_type="application/json" forces Gemini to return pure JSON.
+    # temperature=0.2 keeps answers consistent and factual (less creative randomness).
+    generation_config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        temperature=0.2,
     )
 
     # Step 3 — Serialise the job criteria to YAML for the prompt.
@@ -240,23 +261,31 @@ def analyze_cv(routed_data: tuple, job_criteria: dict, api_key: str) -> dict:
         _, cv_text = routed_data
         prompt = _build_text_prompt(cv_text, criteria_yaml)
 
-        # generate_content() with a plain string = text-only prompt
-        response = model.generate_content(prompt)
+        # client.models.generate_content() replaces model.generate_content().
+        # The model name is now passed directly here instead of at model creation.
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config=generation_config,
+        )
 
     elif input_type == "image":
         # ── Vision mode (image files) ─────────────────────────────────────────
         _, image_bytes, mime_type = routed_data
 
-        # Open the image bytes with PIL so Gemini SDK can accept it.
-        # PIL.Image is the format the google-generativeai SDK expects for images.
-        image = Image.open(io.BytesIO(image_bytes))
+        # In the new SDK, inline image data is passed as a types.Part.
+        # types.Part.from_bytes() wraps raw bytes + mime_type into the correct
+        # structure without needing PIL as an intermediary for the API call.
+        image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
 
         prompt_text = _build_vision_prompt(criteria_yaml)
 
-        # generate_content() with a list = multimodal prompt.
-        # The SDK detects that one element is a PIL Image and one is a string,
-        # and packages them together correctly for the Gemini API.
-        response = model.generate_content([image, prompt_text])
+        # Pass a list of [text_string, image_part] as the multimodal contents.
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=[prompt_text, image_part],
+            config=generation_config,
+        )
 
     else:
         raise ValueError(f"Unknown input type from file_router: '{input_type}'")

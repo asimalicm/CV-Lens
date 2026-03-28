@@ -208,6 +208,35 @@ if uploaded_file is not None:
                     # Step 1 — Detect format and extract content
                     routed_data = route_file(uploaded_file.name, file_bytes)
 
+                # ── Debug expander: show what was actually extracted ───────────────
+                # This is invaluable for diagnosing issues like "the score is 0"
+                # because you can immediately see if the text extraction failed.
+                # It appears BEFORE the Gemini call so you don't have to wait for
+                # the AI to finish before spotting an extraction problem.
+                if routed_data[0] == "text":
+                    extracted_text = routed_data[1]
+                    char_count = len(extracted_text.strip())
+
+                    with st.expander(
+                        f"📄 Extracted CV Text — {char_count:,} characters "
+                        f"({'click to inspect' if char_count >= 150 else '⚠️ very short — click to inspect'})",
+                        expanded=(char_count < 150),  # auto-open if suspiciously short
+                    ):
+                        if char_count < 150:
+                            st.warning(
+                                f"Only **{char_count} characters** were extracted from this file. "
+                                "This is usually caused by a complex LaTeX template. "
+                                "The raw LaTeX source has been sent to Gemini instead, "
+                                "which can still read LaTeX natively."
+                            )
+                        st.text_area(
+                            "Extracted content sent to Gemini",
+                            extracted_text,
+                            height=250,
+                            disabled=True,
+                            label_visibility="collapsed",
+                        )
+
                 with st.spinner("Gemini is reading the CV and evaluating the candidate... (~10–20s)"):
                     # Step 2 — Send to Gemini and get structured results
                     result = analyze_cv(routed_data, job_criteria, api_key)
