@@ -1,0 +1,19 @@
+# Never commit your real secrets
+.env
+.streamlit/secrets.toml
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
