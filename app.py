@@ -1,5 +1,5 @@
 """
-app.py — cv-lens: Main Streamlit Application Entry Point
+app.py — CV-Lens: Main Streamlit Application Entry Point
 ───────────────────────────────────────────────────────────────
 WHAT IT DOES:
     This is the top-level file that Streamlit runs. It wires together all the
@@ -37,7 +37,7 @@ from utils.report_renderer import render_report
 # ─── Page configuration ───────────────────────────────────────────────────────
 # Must be the FIRST Streamlit call in the script — Streamlit enforces this.
 st.set_page_config(
-    page_title="cv-lens",
+    page_title="CV-Lens",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -93,7 +93,7 @@ except FileNotFoundError:
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("📄 cv-lens")
+    st.title("📄 CV-Lens")
     st.markdown("Evaluate any CV against a job description using **Gemini AI**.")
     st.markdown("---")
 
@@ -136,7 +136,7 @@ with st.sidebar:
 
 
 # ─── Main content area ────────────────────────────────────────────────────────
-st.title("cv-lens")
+st.title("CV-Lens")
 st.markdown(
     "Upload a candidate's CV and get an AI-powered evaluation against the "
     f"**{job_criteria.get('job_title', 'defined role')}** job requirements."

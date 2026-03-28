@@ -1,4 +1,4 @@
-# cv-lens
+# CV-Lens
 
 A Streamlit web app that evaluates a candidate's CV against a job description using the **Gemini 2.0 Flash** AI model. Supports LaTeX (`.tex`), PDF, and image (`.png`, `.jpg`, `.webp`) CVs.
 
@@ -66,7 +66,7 @@ key_responsibilities:
 ## Project Structure
 
 ```
-cv-lens/
+CV-Lens/
 ├── app.py                     # Streamlit UI entry point
 ├── config/
 │   └── job_criteria.yaml      # Job requirements (edit this)
